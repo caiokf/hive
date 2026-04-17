@@ -1,14 +1,6 @@
-```
- ██   ██ ██ ██    ██ ████████
- ██   ██ ██ ██    ██ ██
- ███████ ██ ██    ██ █████
- ██   ██ ██  ██  ██  ██
- ██   ██ ██    ██    ████████
-```
-
-# hive
-
-### Autonomous AI agents triggered by GitHub events
+<p align="center">
+  <img src=".github/banner.svg" alt="hive" width="700" />
+</p>
 
 Define what should happen when a PR is opened, an issue is labeled, or a comment is posted — hive listens for GitHub webhook events and dispatches AI coding agents to handle them. It also supports cron-like schedules for recurring tasks like morning PR summaries or weekly dependency audits.
 
