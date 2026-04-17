@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0806"/>
+      <stop offset="100%" stop-color="#1a0f05"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffb347"/>
+      <stop offset="100%" stop-color="#e87a2e"/>
+    </linearGradient>
+    <linearGradient id="hex-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e87a2e" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#e87a2e" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="200" rx="12" fill="url(#bg)"/>
+
+  <!-- Decorative honeycomb pattern (left side, faded) -->
+  <g fill="url(#hex-fill)" stroke="#e87a2e" stroke-width="0.6" stroke-opacity="0.15" transform="translate(30, 40)">
+    <polygon points="30,0 55,14.4 55,43.2 30,57.6 5,43.2 5,14.4"/>
+    <polygon points="80,0 105,14.4 105,43.2 80,57.6 55,43.2 55,14.4"/>
+    <polygon points="130,0 155,14.4 155,43.2 130,57.6 105,43.2 105,14.4"/>
+    <polygon points="55,50 80,64.4 80,93.2 55,107.6 30,93.2 30,64.4"/>
+    <polygon points="105,50 130,64.4 130,93.2 105,107.6 80,93.2 80,64.4"/>
+    <polygon points="30,100 55,114.4 55,143.2 30,157.6 5,143.2 5,114.4"/>
+    <polygon points="80,100 105,114.4 105,143.2 80,157.6 55,143.2 55,114.4"/>
+  </g>
+
+  <!-- Decorative honeycomb pattern (right side, faded) -->
+  <g fill="url(#hex-fill)" stroke="#e87a2e" stroke-width="0.6" stroke-opacity="0.1" transform="translate(600, 20)">
+    <polygon points="30,0 55,14.4 55,43.2 30,57.6 5,43.2 5,14.4"/>
+    <polygon points="80,0 105,14.4 105,43.2 80,57.6 55,43.2 55,14.4"/>
+    <polygon points="130,0 155,14.4 155,43.2 130,57.6 105,43.2 105,14.4"/>
+    <polygon points="55,50 80,64.4 80,93.2 55,107.6 30,93.2 30,64.4"/>
+    <polygon points="105,50 130,64.4 130,93.2 105,107.6 80,93.2 80,64.4"/>
+    <polygon points="80,100 105,114.4 105,143.2 80,157.6 55,143.2 55,114.4"/>
+    <polygon points="130,100 155,114.4 155,143.2 130,157.6 105,143.2 105,114.4"/>
+  </g>
+
+  <!-- Logo: 7-cell honeycomb -->
+  <g fill="none" stroke="url(#accent)" stroke-width="1.8" stroke-linejoin="round" transform="translate(310, 52)">
+    <polygon points="16,10.5 20.5,13.1 20.5,18.3 16,20.9 11.5,18.3 11.5,13.1"/>
+    <polygon points="16,2.3 20.5,4.9 20.5,10.1 16,12.7 11.5,10.1 11.5,4.9"/>
+    <polygon points="23.8,6.4 28.3,9 28.3,14.2 23.8,16.8 19.3,14.2 19.3,9"/>
+    <polygon points="23.8,14.6 28.3,17.2 28.3,22.4 23.8,25 19.3,22.4 19.3,17.2"/>
+    <polygon points="16,18.7 20.5,21.3 20.5,26.5 16,29.1 11.5,26.5 11.5,21.3"/>
+    <polygon points="8.2,14.6 12.7,17.2 12.7,22.4 8.2,25 3.7,22.4 3.7,17.2"/>
+    <polygon points="8.2,6.4 12.7,9 12.7,14.2 8.2,16.8 3.7,14.2 3.7,9"/>
+  </g>
+
+  <!-- "hive" text -->
+  <text x="355" y="115" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="52" fill="url(#accent)" letter-spacing="-1">hive</text>
+
+  <!-- Tagline -->
+  <text x="400" y="150" font-family="ui-monospace, monospace" font-size="13" fill="#a89478" text-anchor="middle" letter-spacing="0.5">Autonomous AI agents triggered by GitHub events</text>
+</svg>
