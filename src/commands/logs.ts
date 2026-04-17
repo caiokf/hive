@@ -49,6 +49,17 @@ export function registerLogsCommand(program: Command) {
         return
       }
 
+      // Compute column widths for alignment
+      const colWidths = {
+        name: Math.max(...runs.map(r => r.taskName.length)),
+        id: 8,
+        duration: Math.max(...runs.map(r =>
+          r.result?.durationMs ? formatDuration(r.result.durationMs).length : 0
+        ), 1),
+        time: Math.max(...runs.map(r => formatTimestampShort(r.startedAt).length), 1),
+        trigger: Math.max(...runs.map(r => r.trigger.type.length + 2), 1),
+      }
+
       console.log(chalk.bold(`\n  Run History${taskName ? ` (${taskName})` : ""}\n`))
       for (const run of runs) {
         const icon = run.status === "success" ? chalk.green("✓") :
@@ -58,10 +69,11 @@ export function registerLogsCommand(program: Command) {
                      run.status === "cancelled" ? chalk.dim("○") :
                      chalk.dim("◌")
         const duration = run.result?.durationMs ? formatDuration(run.result.durationMs) : ""
-        const link = run.links?.pr ? chalk.cyan(` ${run.links.pr}`) : ""
+        const timestamp = formatTimestampShort(run.startedAt)
+        const trigger = `[${run.trigger.type}]`
+        const link = run.links?.pr ? chalk.cyan(` → PR`) : ""
 
-        console.log(`  ${icon} ${chalk.bold(run.id)} ${run.taskName} — ${run.status} ${chalk.dim(duration)}`)
-        console.log(chalk.dim(`    ${run.startedAt} [${run.trigger.type}]${link}`))
+        console.log(`  ${icon} ${chalk.white.bold(run.taskName.padEnd(colWidths.name))} ${chalk.dim(run.id)} ${chalk.cyan(duration.padStart(colWidths.duration))} ${chalk.dim(timestamp.padEnd(colWidths.time))} ${chalk.blue(trigger)}${link}`)
         if (run.error) console.log(chalk.red(`    ${run.error}`))
       }
       console.log()
@@ -95,4 +107,15 @@ function formatDuration(ms: number): string {
   const mins = Math.floor(ms / 60_000)
   const secs = Math.round((ms % 60_000) / 1000)
   return `${mins}m${secs}s`
+}
+
+function formatTimestampShort(iso: string): string {
+  const d = new Date(iso)
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+
+  if (diffMs < 60_000) return "just now"
+  if (diffMs < 3_600_000) return `${Math.floor(diffMs / 60_000)}m ago`
+  if (diffMs < 86_400_000) return `${Math.floor(diffMs / 3_600_000)}h ago`
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
 }
