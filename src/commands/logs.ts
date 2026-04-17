@@ -2,6 +2,7 @@ import type { Command } from "commander"
 import chalk from "chalk"
 import { findHiveDir } from "../core/config.js"
 import { listRuns, getRun } from "../core/run-store.js"
+import { renderMarkdown } from "../ui/markdown.js"
 
 export function registerLogsCommand(program: Command) {
   program
@@ -83,7 +84,7 @@ function printRunDetail(run: ReturnType<typeof getRun> & {}) {
   if (run.error) console.log(chalk.red(`  Error:     ${run.error}`))
   if (run.result?.raw) {
     console.log(chalk.dim("\n  --- Output ---\n"))
-    console.log(run.result.raw)
+    console.log(renderMarkdown(run.result.raw))
   }
   console.log()
 }

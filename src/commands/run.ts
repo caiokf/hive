@@ -2,6 +2,7 @@ import type { Command } from "commander"
 import chalk from "chalk"
 import { findHiveDir, loadConfig, loadTasks } from "../core/config.js"
 import { executeTask } from "../core/executor.js"
+import { renderMarkdown } from "../ui/markdown.js"
 
 export function registerRunCommand(program: Command) {
   program
@@ -55,7 +56,7 @@ export function registerRunCommand(program: Command) {
 
       if (run.result?.raw) {
         console.log(chalk.dim("\n  --- Output ---\n"))
-        console.log(run.result.raw)
+        console.log(renderMarkdown(run.result.raw))
       }
 
       console.log()
