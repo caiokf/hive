@@ -127,6 +127,11 @@ body {
   color: var(--col-orange-bright);
 }
 
+.header-icon-link {
+  display: flex;
+  align-items: center;
+}
+
 /* ───── Hero ───── */
 .hero {
   flex: 1;
