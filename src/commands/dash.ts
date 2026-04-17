@@ -62,16 +62,16 @@ export function registerDashCommand(program: Command) {
         // Clear screen
         process.stdout.write("\x1B[2J\x1B[H")
 
-        // Muted palette
+        // Soft palette — readable but not harsh
         const muted = {
-          green: chalk.hex("#5a8a5a"),
-          red: chalk.hex("#8a5a5a"),
-          yellow: chalk.hex("#8a8a5a"),
-          cyan: chalk.hex("#5a7a8a"),
-          blue: chalk.hex("#5a5a8a"),
-          text: chalk.hex("#a0a0a0"),
-          dim: chalk.hex("#606060"),
-          faint: chalk.hex("#484848"),
+          green: chalk.hex("#7ab87a"),
+          red: chalk.hex("#b87a7a"),
+          yellow: chalk.hex("#b8b87a"),
+          cyan: chalk.hex("#7ab0b8"),
+          blue: chalk.hex("#7a8ab8"),
+          text: chalk.hex("#c0c0c0"),
+          dim: chalk.hex("#808080"),
+          faint: chalk.hex("#585858"),
         }
 
         const daemon = getDaemonStatus(hiveDir!)
@@ -225,10 +225,10 @@ export function registerDashCommand(program: Command) {
       }
 
       const interval = setInterval(() => {
-        frame += 2
-        if (frame % 60 === 0) refresh() // Refresh data every ~2s
+        frame++
+        if (frame % 10 === 0) refresh() // Refresh data every ~2s
         render()
-      }, 33)
+      }, 200)
 
       process.stdin.on("keypress", (_str, key) => {
         if (key.name === "q" || (key.ctrl && key.name === "c")) {
