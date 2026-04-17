@@ -11,7 +11,8 @@ import { listRuns, getRun } from "../core/run-store.js"
 import { renderMarkdown } from "../ui/markdown.js"
 import type { Run, TaskDefinition } from "../core/types.js"
 
-const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+// Hexagonal honeycomb spinner — larger pattern cycling through hex cell states
+const SPINNER_FRAMES = ["⬡", "⬢", "⎔", "⏣", "⬡", "⎔", "⬢", "⏣"]
 
 export function registerDashCommand(program: Command) {
   program
@@ -61,12 +62,24 @@ export function registerDashCommand(program: Command) {
         // Clear screen
         process.stdout.write("\x1B[2J\x1B[H")
 
+        // Muted palette
+        const muted = {
+          green: chalk.hex("#5a8a5a"),
+          red: chalk.hex("#8a5a5a"),
+          yellow: chalk.hex("#8a8a5a"),
+          cyan: chalk.hex("#5a7a8a"),
+          blue: chalk.hex("#5a5a8a"),
+          text: chalk.hex("#a0a0a0"),
+          dim: chalk.hex("#606060"),
+          faint: chalk.hex("#484848"),
+        }
+
         const daemon = getDaemonStatus(hiveDir!)
-        const statusDot = daemon.running ? chalk.green("●") : chalk.red("○")
+        const statusDot = daemon.running ? muted.green("●") : muted.red("○")
         const statusText = daemon.running ? `Running (PID ${daemon.pid})` : "Stopped"
 
-        console.log(`  ${chalk.bold("hive dashboard")}  ${statusDot} ${chalk.dim(statusText)}`)
-        console.log(chalk.dim("─".repeat(Math.min(cols - 2, 80))))
+        console.log(`  ${chalk.bold("hive dashboard")}  ${statusDot} ${muted.dim(statusText)}`)
+        console.log(muted.faint("─".repeat(Math.min(cols - 2, 80))))
 
         if (detailRunId) {
           renderDetail(detailRunId, rows)
@@ -93,49 +106,49 @@ export function registerDashCommand(program: Command) {
         } : { name: 1, id: 8, duration: 1, time: 1, trigger: 1 }
 
         if (activeRuns.length > 0) {
-          console.log(chalk.dim.yellow(`\n  Active (${activeRuns.length})`))
+          console.log(muted.yellow(`\n  Active (${activeRuns.length})`))
           for (let i = 0; i < activeRuns.length; i++) {
             const run = activeRuns[i]
             const spinner = SPINNER_FRAMES[frame % SPINNER_FRAMES.length]
             const elapsed = formatDuration(Date.now() - new Date(run.startedAt).getTime())
-            const selected = i === selectedIndex ? chalk.cyan("›") : " "
+            const selected = i === selectedIndex ? muted.cyan("›") : " "
             const timestamp = formatTimestampShort(run.startedAt)
             const trigger = `[${run.trigger.type}]`
-            console.log(`  ${selected} ${chalk.dim.yellow(spinner)} ${chalk.bold(run.taskName.padEnd(colWidths.name))} ${chalk.dim(run.id)} ${chalk.dim.yellow(elapsed.padStart(colWidths.duration))} ${chalk.dim(timestamp.padEnd(colWidths.time))} ${chalk.dim.blue(trigger)}`)
+            console.log(`  ${selected} ${muted.yellow(spinner)} ${muted.text(run.taskName.padEnd(colWidths.name))} ${muted.faint(run.id)} ${muted.yellow(elapsed.padStart(colWidths.duration))} ${muted.faint(timestamp.padEnd(colWidths.time))} ${muted.faint(trigger)}`)
           }
         }
 
         if (completedRuns.length > 0) {
-          console.log(chalk.dim(`\n  Completed (${completedRuns.length})`))
+          console.log(muted.dim(`\n  Completed (${completedRuns.length})`))
           const offset = activeRuns.length
           for (let i = 0; i < maxDisplay; i++) {
             const run = completedRuns[i]
-            const icon = run.status === "success" ? chalk.dim.green("✓") :
-                         run.status === "failure" ? chalk.dim.red("✗") :
-                         run.status === "timeout" ? chalk.dim.yellow("⏱") :
-                         run.status === "cancelled" ? chalk.dim("○") :
-                         chalk.dim("◌")
+            const icon = run.status === "success" ? muted.green("✓") :
+                         run.status === "failure" ? muted.red("✗") :
+                         run.status === "timeout" ? muted.yellow("⏱") :
+                         run.status === "cancelled" ? muted.faint("○") :
+                         muted.faint("◌")
             const duration = run.result?.durationMs ? formatDuration(run.result.durationMs) : ""
-            const link = run.links?.pr ? chalk.dim.cyan(` → PR`) : ""
-            const selected = (offset + i) === selectedIndex ? chalk.cyan("›") : " "
+            const link = run.links?.pr ? muted.cyan(` → PR`) : ""
+            const selected = (offset + i) === selectedIndex ? muted.cyan("›") : " "
             const timestamp = formatTimestampShort(run.startedAt)
             const trigger = `[${run.trigger.type}]`
-            console.log(`  ${selected} ${icon} ${chalk.bold(run.taskName.padEnd(colWidths.name))} ${chalk.dim(run.id)} ${chalk.dim.cyan(duration.padStart(colWidths.duration))} ${chalk.dim(timestamp.padEnd(colWidths.time))} ${chalk.dim.blue(trigger)}${link}`)
+            console.log(`  ${selected} ${icon} ${muted.text(run.taskName.padEnd(colWidths.name))} ${muted.faint(run.id)} ${muted.cyan(duration.padStart(colWidths.duration))} ${muted.faint(timestamp.padEnd(colWidths.time))} ${muted.faint(trigger)}${link}`)
           }
         }
 
         if (allRuns.length === 0) {
-          console.log(chalk.dim("\n  No runs yet. Trigger a task or wait for events."))
+          console.log(muted.faint("\n  No runs yet. Trigger a task or wait for events."))
         }
 
         // Upcoming cron tasks
         const upcoming = getUpcoming()
         if (upcoming.length > 0) {
-          console.log(chalk.dim(`\n  Upcoming`))
+          console.log(muted.dim(`\n  Upcoming`))
           const nameWidth = Math.max(...upcoming.map(u => u.name.length))
           for (const u of upcoming) {
             const countdown = formatCountdown(u.next.getTime() - Date.now())
-            console.log(`  ${chalk.dim("◇")} ${chalk.bold(u.name.padEnd(nameWidth))} ${chalk.dim.yellow(countdown)} ${chalk.dim(u.schedule)}`)
+            console.log(`  ${muted.faint("◇")} ${muted.text(u.name.padEnd(nameWidth))} ${muted.yellow(countdown)} ${muted.faint(u.schedule)}`)
           }
         }
 
@@ -200,7 +213,7 @@ export function registerDashCommand(program: Command) {
       }
 
       function renderHelp() {
-        console.log(chalk.dim("\n  [↑/↓] navigate  [enter] detail  [x] re-run  [r] refresh  [q] quit"))
+        console.log(chalk.hex("#484848")("\n  [↑/↓] navigate  [enter] detail  [x] re-run  [r] refresh  [q] quit"))
       }
 
       // Start TUI
@@ -212,10 +225,10 @@ export function registerDashCommand(program: Command) {
       }
 
       const interval = setInterval(() => {
-        frame++
-        if (frame % 30 === 0) refresh() // Refresh data every ~2s
+        frame += 2
+        if (frame % 60 === 0) refresh() // Refresh data every ~2s
         render()
-      }, 66)
+      }, 33)
 
       process.stdin.on("keypress", (_str, key) => {
         if (key.name === "q" || (key.ctrl && key.name === "c")) {
