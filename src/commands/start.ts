@@ -1,4 +1,6 @@
 import type { Command } from "commander"
+import fs from "node:fs"
+import path from "node:path"
 import { spawn } from "node:child_process"
 import chalk from "chalk"
 import { findHiveDir, loadConfig, loadTasks } from "../core/config.js"
@@ -37,10 +39,17 @@ export function registerStartCommand(program: Command) {
         process.on("SIGINT", () => { stop(); process.exit(0) })
         process.on("SIGTERM", () => { stop(); process.exit(0) })
       } else {
-        // Spawn detached child process
-        const child = spawn(process.execPath, [process.argv[1], "start", "--foreground"], {
+        // Resolve dist/bin.js for the detached child process.
+        // When running via tsx (dev), process.argv[1] is a .ts file that node can't run directly.
+        // Walk up from cwd to find dist/bin.js in the project root.
+        const distBin = path.resolve(process.cwd(), "dist", "bin.js")
+        const entryPoint = fs.existsSync(distBin) ? distBin : process.argv[1]
+
+        const logPath = path.join(hiveDir, "daemon.log")
+        const logFd = fs.openSync(logPath, "a")
+        const child = spawn(process.execPath, [entryPoint, "start", "--foreground"], {
           detached: true,
-          stdio: "ignore",
+          stdio: ["ignore", logFd, logFd],
           cwd: process.cwd(),
           env: process.env,
         })
