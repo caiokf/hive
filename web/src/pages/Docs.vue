@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const activeSection = ref('getting-started')
+const topicsOpen = ref(false)
 
 const sections = [
   { id: 'getting-started', label: 'Getting Started' },
@@ -49,18 +50,23 @@ watch(() => route.hash, (hash) => {
 
 <template>
   <div class="docs">
-    <!-- Mobile: horizontal scrollable nav strip -->
-    <nav class="mobile-nav">
-      <a
-        v-for="s in sections"
-        :key="s.id"
-        :href="'#' + s.id"
-        :class="{ active: activeSection === s.id }"
-        @click.prevent="scrollTo(s.id)"
-      >
-        {{ s.label }}
-      </a>
-    </nav>
+    <!-- Mobile: collapsible Topics menu -->
+    <div class="mobile-topics">
+      <button class="mobile-topics-toggle" @click="topicsOpen = !topicsOpen">
+        <span class="mobile-topics-icon">≡</span> Topics
+      </button>
+      <nav v-if="topicsOpen" class="mobile-topics-list">
+        <a
+          v-for="s in sections"
+          :key="s.id"
+          :href="'#' + s.id"
+          :class="{ active: activeSection === s.id }"
+          @click.prevent="scrollTo(s.id); topicsOpen = false"
+        >
+          {{ s.label }}
+        </a>
+      </nav>
+    </div>
 
     <aside class="sidebar">
       <div class="sidebar-inner">
@@ -482,12 +488,13 @@ hive doctor</code></pre>
   display: flex;
   min-height: 100vh;
   padding-top: 48px;
+  background: var(--col-bg);
 }
 
 /* ── Sidebar ── */
 .sidebar {
   position: fixed;
-  top: 60px;
+  top: 48px;
   left: 0;
   bottom: 0;
   width: 220px;
@@ -757,51 +764,66 @@ hive doctor</code></pre>
   text-decoration: none;
 }
 
-/* ── Mobile nav strip ── */
-.mobile-nav {
+/* ── Mobile topics menu ── */
+.mobile-topics {
   display: none;
 }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .docs {
-    padding-top: 44px;
+    padding-top: 48px;
     flex-direction: column;
   }
 
-  .mobile-nav {
-    display: flex;
-    position: sticky;
-    top: 48px;
-    z-index: 50;
-    overflow-x: auto;
-    gap: 0;
-    background: rgba(6, 5, 3, 0.9);
-    backdrop-filter: blur(16px);
+  .mobile-topics {
+    display: block;
     border-bottom: 1px solid var(--col-border);
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
   }
 
-  .mobile-nav::-webkit-scrollbar {
-    display: none;
-  }
-
-  .mobile-nav a {
-    flex-shrink: 0;
-    padding: 10px 14px;
+  .mobile-topics-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 16px;
     font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--col-text-muted);
-    text-decoration: none;
-    white-space: nowrap;
-    border-bottom: 2px solid transparent;
-    transition: color 0.15s, border-color 0.15s;
+    font-size: 13px;
+    color: var(--col-text-dim);
+    background: none;
+    border: none;
+    cursor: pointer;
   }
 
-  .mobile-nav a.active {
+  .mobile-topics-icon {
+    font-size: 16px;
+    color: var(--col-text-muted);
+  }
+
+  .mobile-topics-list {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--col-border);
+    background: rgba(6, 5, 3, 0.95);
+  }
+
+  .mobile-topics-list a {
+    padding: 10px 16px 10px 32px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--col-text-dim);
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .mobile-topics-list a:hover {
+    color: var(--col-text);
+    background: rgba(212, 136, 15, 0.06);
+  }
+
+  .mobile-topics-list a.active {
     color: var(--col-orange);
-    border-bottom-color: var(--col-orange);
+    background: rgba(212, 136, 15, 0.08);
   }
 
   .sidebar {
