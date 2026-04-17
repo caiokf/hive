@@ -476,7 +476,7 @@ hive doctor</code></pre>
 .docs {
   display: flex;
   min-height: 100vh;
-  padding-top: 60px;
+  padding-top: 48px;
 }
 
 /* ── Sidebar ── */
@@ -543,8 +543,8 @@ hive doctor</code></pre>
 }
 
 .content section {
-  padding-top: 24px;
-  padding-bottom: 48px;
+  padding-top: 16px;
+  padding-bottom: 40px;
   border-bottom: 1px solid var(--col-border);
 }
 
@@ -764,7 +764,7 @@ hive doctor</code></pre>
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .docs {
-    padding-top: 44px;
+    padding-top: 0;
   }
 
   .mobile-menu-btn {
