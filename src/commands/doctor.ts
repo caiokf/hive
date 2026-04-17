@@ -3,6 +3,7 @@ import fs from "node:fs"
 import chalk from "chalk"
 import { getAllRuntimes } from "@caiokf/valet"
 import { findHiveDir, loadConfig, loadTasks } from "../core/config.js"
+import { isGhInstalled, isGhWebhookInstalled } from "../core/forwarder.js"
 
 export function registerDoctorCommand(program: Command) {
   program
@@ -26,17 +27,10 @@ export function registerDoctorCommand(program: Command) {
         const config = loadConfig(hiveDir)
         console.log(chalk.green("  ✓ config.yaml is valid"))
 
-        // Check webhook secret
-        if (!config.github.webhook_secret) {
-          console.log(chalk.yellow("  ⚠ No webhook secret configured (set HIVE_WEBHOOK_SECRET)"))
-          issues++
-        } else {
-          console.log(chalk.green("  ✓ Webhook secret configured"))
-        }
-
         // Check repos
         if (config.github.repos.length === 0) {
-          console.log(chalk.yellow("  ⚠ No GitHub repos configured in config.yaml"))
+          console.log(chalk.yellow("  ⚠ No GitHub repos configured"))
+          console.log(chalk.dim("    Run `hive connect owner/repo` to add one"))
           issues++
         } else {
           console.log(chalk.green(`  ✓ ${config.github.repos.length} repo(s) configured`))
@@ -70,7 +64,36 @@ export function registerDoctorCommand(program: Command) {
         }
       }
 
-      // 4. Check runtimes
+      // 4. Check GitHub CLI & webhook extension
+      console.log(chalk.dim("\n  GitHub:"))
+      if (!isGhInstalled()) {
+        console.log(chalk.red("  ✗ GitHub CLI (gh) not installed"))
+        console.log(chalk.dim("    Install: https://cli.github.com"))
+        issues++
+      } else {
+        console.log(chalk.green("  ✓ GitHub CLI (gh) installed"))
+
+        // Check auth
+        try {
+          const { execSync } = await import("node:child_process")
+          execSync("gh auth status", { stdio: "pipe" })
+          console.log(chalk.green("  ✓ Authenticated with GitHub"))
+        } catch {
+          console.log(chalk.red("  ✗ Not authenticated — run `gh auth login`"))
+          issues++
+        }
+
+        // Check gh-webhook extension
+        if (isGhWebhookInstalled()) {
+          console.log(chalk.green("  ✓ gh-webhook extension installed"))
+        } else {
+          console.log(chalk.red("  ✗ gh-webhook extension not installed"))
+          console.log(chalk.dim("    Run: gh extension install cli/gh-webhook"))
+          issues++
+        }
+      }
+
+      // 5. Check runtimes
       console.log(chalk.dim("\n  Runtimes:"))
       const runtimes = getAllRuntimes()
       const healthResults = await Promise.all(

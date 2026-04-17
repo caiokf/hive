@@ -12,6 +12,10 @@
 
 Define what should happen when a PR is opened, an issue is labeled, or a comment is posted — hive listens for GitHub webhook events and dispatches AI coding agents to handle them. It also supports cron-like schedules for recurring tasks like morning PR summaries or weekly dependency audits.
 
+### Zero-config webhook forwarding
+
+No tunnels, no public URLs, no permanent webhooks. hive uses `gh webhook forward` to pipe GitHub events directly to your local machine. Connect a repo, start the daemon, done.
+
 ### One daemon, many agents
 
 hive runs as a background daemon with a webhook server and cron scheduler. When a trigger fires, it spawns an agent using your existing AI CLI subscriptions (Claude Code, Codex, Gemini, etc.) through [valet](https://github.com/caiokf/valet). No extra API keys needed.
@@ -21,18 +25,22 @@ hive runs as a background daemon with a webhook server and cron scheduler. When 
 Every run is stored locally with status, duration, output, and links back to the PR or issue that triggered it. View everything in a real-time TUI dashboard or query the run history from the command line.
 
 ```bash
-# Set up a project
-hive init
-
-# Connect to a GitHub repo
-hive connect
-
-# Start listening for events
-hive start
-
-# View the dashboard
-hive dash
+hive init                    # scaffold .hive/ directory
+hive connect owner/repo      # add a GitHub repo
+hive start                   # start listening for events
+hive dash                    # view the dashboard
 ```
+
+## Prerequisites
+
+hive requires two tools installed on your machine:
+
+1. **GitHub CLI (`gh`)** — [Install](https://cli.github.com), then run `gh auth login`
+2. **gh-webhook extension** — `gh extension install cli/gh-webhook`
+
+The `gh-webhook` extension enables `gh webhook forward`, which creates a temporary webhook on your repo and streams events to your local machine over a WebSocket. No tunnel or public URL needed. When the daemon stops, the webhook is cleaned up automatically.
+
+Run `hive doctor` to verify everything is set up correctly.
 
 ## Install
 
@@ -52,29 +60,35 @@ npx @caiokf/hive init
 # 1. Scaffold the .hive/ directory
 hive init
 
-# 2. Check runtimes and config
+# 2. Check prerequisites, runtimes, and config
 hive doctor
 
-# 3. Connect a GitHub repo (creates webhook via gh CLI)
-hive connect
+# 3. Connect a GitHub repo
+hive connect owner/repo
 
-# 4. Start the daemon
+# 4. Start the daemon (webhook forwarding + cron scheduler)
 hive start
 
-# 5. Manually trigger a task
-hive run review-prs
+# 5. Open the TUI dashboard
+hive dash
 
-# 6. View run history
-hive logs
+# 6. Or manually trigger a task
+hive run review-prs
 ```
 
 ## How It Works
 
 1. **Define tasks** in `.hive/tasks/*.yaml` — each with a trigger (webhook event or cron) and a task spec (runtime, model, prompt)
-2. **Start the daemon** — `hive start` launches a webhook server and cron scheduler as a background process
-3. **Events arrive** — GitHub sends webhook payloads, hive matches them against task triggers
-4. **Agents execute** — Matching tasks spawn AI agents via [valet](https://github.com/caiokf/valet), which handles prompt delivery across runtimes
-5. **Results are stored** — Each run is saved with status, output, duration, and links
+2. **Connect repos** — `hive connect owner/repo` adds a repo to your config
+3. **Start the daemon** — `hive start` launches a webhook server, spawns `gh webhook forward` per repo, and starts the cron scheduler
+4. **Events flow** — GitHub sends events via WebSocket to `gh webhook forward`, which POSTs them to the local webhook server. hive matches events against task triggers.
+5. **Agents execute** — Matching tasks spawn AI agents via [valet](https://github.com/caiokf/valet), which handles prompt delivery across runtimes
+6. **Results are stored** — Each run is saved with status, output, duration, and links
+7. **Clean shutdown** — `hive stop` kills forwarders, deletes temporary webhooks from GitHub, and stops the server
+
+### Crash recovery
+
+If the daemon crashes, orphaned `gh webhook forward` processes and their temporary GitHub webhooks are cleaned up automatically on the next `hive start`. The daemon writes a state file (`.hive/daemon.state`) tracking all child PIDs and webhook IDs.
 
 ## Task Definitions
 
@@ -131,10 +145,8 @@ defaults:
 
 server:
   port: 7777
-  tunnel: none                    # cloudflare, ngrok, localtunnel
 
 github:
-  webhook_secret: ${HIVE_WEBHOOK_SECRET}
   repos:
     - owner/repo
 
@@ -154,17 +166,17 @@ aliases:
 
 | Command | Description |
 |---|---|
-| `hive init` | Scaffold `.hive/` directory with config and example tasks |
-| `hive start` | Start the daemon (webhook server + cron scheduler) |
-| `hive stop` | Stop the daemon |
-| `hive status` | Show daemon status, active runs, recent history |
-| `hive dash` | Open a TUI dashboard of in-progress and completed runs |
+| `hive init` | Scaffold `.hive/` directory, check prerequisites, install gh-webhook |
+| `hive connect <repo>` | Add a GitHub repo for webhook forwarding |
+| `hive start` | Start daemon (webhook server + forwarders + cron scheduler) |
+| `hive stop` | Stop daemon, kill forwarders, clean up GitHub webhooks |
+| `hive status` | Show daemon status, forwarding repos, active/recent runs |
+| `hive dash` | Open TUI dashboard with real-time run monitoring |
 | `hive add` | Interactively create a new task definition |
 | `hive list` | List configured tasks and their triggers |
 | `hive run <task>` | Manually trigger a task |
 | `hive logs [task]` | Show run history and logs |
-| `hive doctor` | Check runtimes, webhook connectivity, config validity |
-| `hive connect` | Set up GitHub webhook connectivity via `gh` CLI |
+| `hive doctor` | Check gh CLI, gh-webhook extension, runtimes, config |
 
 ## Core Concepts
 
@@ -172,6 +184,7 @@ aliases:
 - **Task** — what to do when a trigger fires: which runtime/model to use, the prompt or agent file, and any context
 - **Run** — a single execution of a task with status, logs, duration, and result
 - **Daemon** — the background process that listens for triggers and dispatches tasks
+- **Forwarder** — a `gh webhook forward` process that pipes GitHub events to the local daemon
 
 ## Project Structure
 
@@ -185,7 +198,8 @@ After `hive init`:
 │   └── morning-summary.yaml  # Cron-scheduled daily summary
 ├── agents/
 │   └── reviewer.md      # Agent prompt file
-└── runs/                # Run history (JSON)
+├── runs/                # Run history (JSON)
+└── logs/                # Per-repo forwarding logs
 ```
 
 ## Supported Runtimes
