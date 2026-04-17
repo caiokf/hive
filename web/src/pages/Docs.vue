@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const activeSection = ref('getting-started')
+const mobileMenuOpen = ref(false)
 
 const sections = [
   { id: 'getting-started', label: 'Getting Started' },
@@ -16,6 +17,7 @@ const sections = [
 
 function scrollTo(id: string) {
   activeSection.value = id
+  mobileMenuOpen.value = false
   const el = document.getElementById(id)
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
@@ -49,7 +51,13 @@ watch(() => route.hash, (hash) => {
 
 <template>
   <div class="docs">
-    <aside class="sidebar">
+    <button class="mobile-menu-btn" @click="mobileMenuOpen = !mobileMenuOpen" :aria-label="mobileMenuOpen ? 'Close menu' : 'Open menu'">
+      {{ mobileMenuOpen ? '✕' : '☰' }}
+    </button>
+
+    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
+
+    <aside class="sidebar" :class="{ open: mobileMenuOpen }">
       <div class="sidebar-inner">
         <h3 class="sidebar-title">Documentation</h3>
         <nav class="sidebar-nav">
@@ -744,29 +752,86 @@ hive doctor</code></pre>
   text-decoration: none;
 }
 
+/* ── Mobile menu button ── */
+.mobile-menu-btn {
+  display: none;
+}
+
+.mobile-overlay {
+  display: none;
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .docs {
-    padding-top: 48px;
+    padding-top: 44px;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 200;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid var(--col-border-hover);
+    background: rgba(6, 5, 3, 0.9);
+    backdrop-filter: blur(16px);
+    color: var(--col-orange);
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .mobile-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: rgba(0, 0, 0, 0.5);
   }
 
   .sidebar {
-    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    transform: translateX(-100%);
+    transition: transform 0.25s var(--ease-out-expo);
+    z-index: 100;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-inner {
+    padding-top: 56px;
   }
 
   .content {
     margin-left: 0;
-    padding: 16px 16px 80px;
+    padding: 8px 16px 80px;
     max-width: 100%;
   }
 
   .content section {
-    padding-top: 12px;
-    padding-bottom: 32px;
+    padding-top: 8px;
+    padding-bottom: 28px;
+  }
+
+  .content section:first-child {
+    padding-top: 0;
   }
 
   .content h1 {
     font-size: 1.5rem;
+    margin-bottom: 8px;
   }
 
   .content h2 {
@@ -799,6 +864,12 @@ hive doctor</code></pre>
 
   .lead {
     font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  .doc-callout {
+    font-size: 12px;
+    padding: 12px 14px;
   }
 }
 </style>
