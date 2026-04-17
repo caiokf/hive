@@ -4,11 +4,9 @@ export const configTemplate = `defaults:
 
 server:
   port: 7777
-  tunnel: none                    # cloudflare, ngrok, localtunnel, or none
 
 github:
-  webhook_secret: \${HIVE_WEBHOOK_SECRET}
-  repos: []
+  repos: []                       # add repos with: hive connect owner/repo
 
 runtimes:
   claude:

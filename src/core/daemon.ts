@@ -5,6 +5,7 @@ import { createWebhookServer } from "./webhook-server.js"
 import type { WebhookEvent } from "./webhook-server.js"
 import { createScheduler } from "./scheduler.js"
 import { executeTask } from "./executor.js"
+import { createForwarderManager, cleanupOrphans, isGhWebhookInstalled } from "./forwarder.js"
 import { getPidFile, getLogFile, ensureDir } from "../util/paths.js"
 import path from "node:path"
 
@@ -31,6 +32,9 @@ export async function startDaemon(opts: DaemonOpts): Promise<{
     fs.appendFileSync(logFile, line)
     if (opts.foreground) process.stdout.write(line)
   }
+
+  // Clean up any orphaned forwarders from a previous crash
+  cleanupOrphans(hiveDir, log)
 
   // Write PID file
   const pidFile = getPidFile(hiveDir)
@@ -80,29 +84,58 @@ export async function startDaemon(opts: DaemonOpts): Promise<{
     promise.catch(err => log(`Run error: ${task.name} — ${err}`))
   }
 
-  // Start webhook server
+  // Collect webhook events needed by tasks
   const webhookTasks = tasks.filter(t => t.trigger.type === "webhook")
-  if (webhookTasks.length > 0 || config.server.port) {
-    const webhook = createWebhookServer({
-      config,
-      tasks,
-      onEvent(event, matchedTasks) {
-        for (const task of matchedTasks) {
-          runTask(task, {
-            type: "webhook",
-            event: event.event,
-            action: event.action,
-          }, extractLinks(event))
-        }
-      },
+  const neededEvents = [...new Set(webhookTasks.map(t =>
+    t.trigger.type === "webhook" ? t.trigger.event : ""
+  ).filter(Boolean))]
+
+  // 1. Start webhook server FIRST (must be listening before forwarders connect)
+  let forwarder: ReturnType<typeof createForwarderManager> | null = null
+
+  const webhook = createWebhookServer({
+    config,
+    tasks,
+    onEvent(event, matchedTasks) {
+      // Reset backoff on successful event receipt
+      forwarder?.resetBackoff(event.payload.repository
+        ? String((event.payload.repository as Record<string, unknown>).full_name)
+        : "")
+
+      for (const task of matchedTasks) {
+        runTask(task, {
+          type: "webhook",
+          event: event.event,
+          action: event.action,
+        }, extractLinks(event))
+      }
+    },
+    onLog: log,
+  })
+
+  server = webhook.start(config.server.port)
+  log(`Webhook server listening on port ${config.server.port}`)
+
+  // 2. Start gh webhook forwarders per repo
+  const repos = config.github.repos
+  if (repos.length > 0 && isGhWebhookInstalled()) {
+    forwarder = createForwarderManager({
+      hiveDir,
+      repos,
+      port: config.server.port,
+      events: neededEvents,
       onLog: log,
     })
 
-    server = webhook.start(config.server.port)
-    log(`Webhook server listening on port ${config.server.port}`)
+    // Override the webhook server's secret with the forwarder's generated secret
+    config.github.webhook_secret = forwarder.secret
+    forwarder.start()
+  } else if (repos.length > 0) {
+    log("Warning: gh-webhook extension not installed — webhook forwarding disabled")
+    log("  Run: gh extension install cli/gh-webhook")
   }
 
-  // Start cron scheduler
+  // 3. Start cron scheduler
   const scheduler = createScheduler({
     tasks,
     onTrigger(task) {
@@ -112,17 +145,27 @@ export async function startDaemon(opts: DaemonOpts): Promise<{
   })
   scheduler.start()
 
-  log(`Daemon started — ${webhookTasks.length} webhook task(s), ${scheduler.jobCount} cron job(s)`)
+  log(`Daemon started — ${webhookTasks.length} webhook task(s), ${scheduler.jobCount} cron job(s), ${forwarder?.repoCount ?? 0} repo(s) forwarding`)
 
-  // Graceful shutdown
+  // Graceful shutdown: forwarders first, then server
   function stop() {
     log("Shutting down...")
+
+    // Stop forwarders first (kills gh webhook forward + deletes webhooks)
+    forwarder?.stop()
+
+    // Stop scheduler
     scheduler.stop()
-    if (server) server.close()
+
+    // Cancel active runs
     for (const [id, controller] of activeRuns) {
       controller.abort()
       log(`Cancelled active run: ${id}`)
     }
+
+    // Stop HTTP server last
+    if (server) server.close()
+
     try { fs.unlinkSync(pidFile) } catch {}
     log("Daemon stopped")
   }
