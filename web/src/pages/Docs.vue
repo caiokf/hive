@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const activeSection = ref('getting-started')
-const mobileMenuOpen = ref(false)
 
 const sections = [
   { id: 'getting-started', label: 'Getting Started' },
@@ -17,7 +16,6 @@ const sections = [
 
 function scrollTo(id: string) {
   activeSection.value = id
-  mobileMenuOpen.value = false
   const el = document.getElementById(id)
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
@@ -51,13 +49,20 @@ watch(() => route.hash, (hash) => {
 
 <template>
   <div class="docs">
-    <button class="mobile-menu-btn" @click="mobileMenuOpen = !mobileMenuOpen" :aria-label="mobileMenuOpen ? 'Close menu' : 'Open menu'">
-      {{ mobileMenuOpen ? '✕' : '☰' }}
-    </button>
+    <!-- Mobile: horizontal scrollable nav strip -->
+    <nav class="mobile-nav">
+      <a
+        v-for="s in sections"
+        :key="s.id"
+        :href="'#' + s.id"
+        :class="{ active: activeSection === s.id }"
+        @click.prevent="scrollTo(s.id)"
+      >
+        {{ s.label }}
+      </a>
+    </nav>
 
-    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
-
-    <aside class="sidebar" :class="{ open: mobileMenuOpen }">
+    <aside class="sidebar">
       <div class="sidebar-inner">
         <h3 class="sidebar-title">Documentation</h3>
         <nav class="sidebar-nav">
@@ -752,66 +757,55 @@ hive doctor</code></pre>
   text-decoration: none;
 }
 
-/* ── Mobile menu button ── */
-.mobile-menu-btn {
-  display: none;
-}
-
-.mobile-overlay {
+/* ── Mobile nav strip ── */
+.mobile-nav {
   display: none;
 }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .docs {
-    padding-top: 0;
+    padding-top: 44px;
+    flex-direction: column;
   }
 
-  .mobile-menu-btn {
+  .mobile-nav {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    position: fixed;
-    bottom: 16px;
-    right: 16px;
-    z-index: 200;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    border: 1px solid var(--col-border-hover);
+    position: sticky;
+    top: 48px;
+    z-index: 50;
+    overflow-x: auto;
+    gap: 0;
     background: rgba(6, 5, 3, 0.9);
     backdrop-filter: blur(16px);
-    color: var(--col-orange);
-    font-size: 18px;
-    cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid var(--col-border);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
 
-  .mobile-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 90;
-    background: rgba(0, 0, 0, 0.5);
+  .mobile-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-nav a {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--col-text-muted);
+    text-decoration: none;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .mobile-nav a.active {
+    color: var(--col-orange);
+    border-bottom-color: var(--col-orange);
   }
 
   .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 240px;
-    transform: translateX(-100%);
-    transition: transform 0.25s var(--ease-out-expo);
-    z-index: 100;
-  }
-
-  .sidebar.open {
-    transform: translateX(0);
-  }
-
-  .sidebar-inner {
-    padding-top: 56px;
+    display: none;
   }
 
   .content {
