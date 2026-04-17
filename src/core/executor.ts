@@ -40,7 +40,7 @@ export async function executeTask(opts: ExecuteOpts): Promise<Run> {
     // Build prompt: inline prompt or agent file
     let prompt = spec.prompt ?? ""
     if (spec.agent) {
-      const agentPath = path.resolve(path.dirname(hiveDir), spec.agent)
+      const agentPath = path.resolve(hiveDir, spec.agent)
       if (fs.existsSync(agentPath)) {
         prompt = fs.readFileSync(agentPath, "utf-8")
       } else {
@@ -52,7 +52,7 @@ export async function executeTask(opts: ExecuteOpts): Promise<Run> {
     if (spec.context?.length) {
       const contextParts: string[] = []
       for (const pattern of spec.context) {
-        const resolved = path.resolve(path.dirname(hiveDir), pattern)
+        const resolved = path.resolve(hiveDir, pattern)
         if (fs.existsSync(resolved)) {
           contextParts.push(`\n--- ${pattern} ---\n${fs.readFileSync(resolved, "utf-8")}`)
         }
