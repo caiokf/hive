@@ -4,6 +4,7 @@ import chalk from "chalk"
 import { findHiveDir } from "../core/config.js"
 import { getDaemonStatus } from "../core/daemon.js"
 import { listRuns, getRun } from "../core/run-store.js"
+import { renderMarkdown } from "../ui/markdown.js"
 import type { Run } from "../core/types.js"
 
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
@@ -130,7 +131,8 @@ export function registerDashCommand(program: Command) {
 
         if (run.result?.raw) {
           console.log(chalk.dim("\n  --- Output ---\n"))
-          const lines = run.result.raw.split("\n")
+          const rendered = renderMarkdown(run.result.raw)
+          const lines = rendered.split("\n")
           const maxLines = rows - 16
           for (let i = 0; i < Math.min(lines.length, maxLines); i++) {
             console.log(`  ${lines[i]}`)
