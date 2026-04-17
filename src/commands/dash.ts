@@ -65,7 +65,7 @@ export function registerDashCommand(program: Command) {
         const statusDot = daemon.running ? chalk.green("●") : chalk.red("○")
         const statusText = daemon.running ? `Running (PID ${daemon.pid})` : "Stopped"
 
-        console.log(chalk.bold(`  hive dashboard  ${statusDot} ${statusText}`))
+        console.log(`  ${chalk.bold("hive dashboard")}  ${statusDot} ${chalk.dim(statusText)}`)
         console.log(chalk.dim("─".repeat(Math.min(cols - 2, 80))))
 
         if (detailRunId) {
@@ -93,7 +93,7 @@ export function registerDashCommand(program: Command) {
         } : { name: 1, id: 8, duration: 1, time: 1, trigger: 1 }
 
         if (activeRuns.length > 0) {
-          console.log(chalk.bold.yellow(`\n  Active (${activeRuns.length})`))
+          console.log(chalk.dim.yellow(`\n  Active (${activeRuns.length})`))
           for (let i = 0; i < activeRuns.length; i++) {
             const run = activeRuns[i]
             const spinner = SPINNER_FRAMES[frame % SPINNER_FRAMES.length]
@@ -101,26 +101,26 @@ export function registerDashCommand(program: Command) {
             const selected = i === selectedIndex ? chalk.cyan("›") : " "
             const timestamp = formatTimestampShort(run.startedAt)
             const trigger = `[${run.trigger.type}]`
-            console.log(`  ${selected} ${chalk.yellow(spinner)} ${chalk.white.bold(run.taskName.padEnd(colWidths.name))} ${chalk.dim(run.id)} ${chalk.yellow(elapsed.padStart(colWidths.duration))} ${chalk.dim(timestamp.padEnd(colWidths.time))} ${chalk.blue(trigger)}`)
+            console.log(`  ${selected} ${chalk.dim.yellow(spinner)} ${chalk.bold(run.taskName.padEnd(colWidths.name))} ${chalk.dim(run.id)} ${chalk.dim.yellow(elapsed.padStart(colWidths.duration))} ${chalk.dim(timestamp.padEnd(colWidths.time))} ${chalk.dim.blue(trigger)}`)
           }
         }
 
         if (completedRuns.length > 0) {
-          console.log(chalk.bold(`\n  Completed (${completedRuns.length})`))
+          console.log(chalk.dim(`\n  Completed (${completedRuns.length})`))
           const offset = activeRuns.length
           for (let i = 0; i < maxDisplay; i++) {
             const run = completedRuns[i]
-            const icon = run.status === "success" ? chalk.green("✓") :
-                         run.status === "failure" ? chalk.red("✗") :
-                         run.status === "timeout" ? chalk.yellow("⏱") :
+            const icon = run.status === "success" ? chalk.dim.green("✓") :
+                         run.status === "failure" ? chalk.dim.red("✗") :
+                         run.status === "timeout" ? chalk.dim.yellow("⏱") :
                          run.status === "cancelled" ? chalk.dim("○") :
                          chalk.dim("◌")
             const duration = run.result?.durationMs ? formatDuration(run.result.durationMs) : ""
-            const link = run.links?.pr ? chalk.cyan(` → PR`) : ""
+            const link = run.links?.pr ? chalk.dim.cyan(` → PR`) : ""
             const selected = (offset + i) === selectedIndex ? chalk.cyan("›") : " "
             const timestamp = formatTimestampShort(run.startedAt)
             const trigger = `[${run.trigger.type}]`
-            console.log(`  ${selected} ${icon} ${chalk.white.bold(run.taskName.padEnd(colWidths.name))} ${chalk.dim(run.id)} ${chalk.cyan(duration.padStart(colWidths.duration))} ${chalk.dim(timestamp.padEnd(colWidths.time))} ${chalk.blue(trigger)}${link}`)
+            console.log(`  ${selected} ${icon} ${chalk.bold(run.taskName.padEnd(colWidths.name))} ${chalk.dim(run.id)} ${chalk.dim.cyan(duration.padStart(colWidths.duration))} ${chalk.dim(timestamp.padEnd(colWidths.time))} ${chalk.dim.blue(trigger)}${link}`)
           }
         }
 
@@ -131,11 +131,11 @@ export function registerDashCommand(program: Command) {
         // Upcoming cron tasks
         const upcoming = getUpcoming()
         if (upcoming.length > 0) {
-          console.log(chalk.bold(`\n  Upcoming`))
+          console.log(chalk.dim(`\n  Upcoming`))
           const nameWidth = Math.max(...upcoming.map(u => u.name.length))
           for (const u of upcoming) {
             const countdown = formatCountdown(u.next.getTime() - Date.now())
-            console.log(`  ${chalk.dim("◇")} ${chalk.white.bold(u.name.padEnd(nameWidth))} ${chalk.yellow(countdown)} ${chalk.dim(u.schedule)}`)
+            console.log(`  ${chalk.dim("◇")} ${chalk.bold(u.name.padEnd(nameWidth))} ${chalk.dim.yellow(countdown)} ${chalk.dim(u.schedule)}`)
           }
         }
 
@@ -213,9 +213,9 @@ export function registerDashCommand(program: Command) {
 
       const interval = setInterval(() => {
         frame++
-        if (frame % 20 === 0) refresh() // Refresh data every ~2s
+        if (frame % 30 === 0) refresh() // Refresh data every ~2s
         render()
-      }, 100)
+      }, 66)
 
       process.stdin.on("keypress", (_str, key) => {
         if (key.name === "q" || (key.ctrl && key.name === "c")) {
