@@ -73,18 +73,33 @@ export function registerDoctorCommand(program: Command) {
       // 4. Check runtimes
       console.log(chalk.dim("\n  Runtimes:"))
       const runtimes = getAllRuntimes()
-      for (const runtime of runtimes) {
-        try {
-          const health = await runtime.healthCheck()
-          if (health.ok) {
-            console.log(chalk.green(`  ✓ ${runtime.name} — available`))
-          } else {
-            console.log(chalk.yellow(`  ⚠ ${runtime.name} — ${health.message ?? "not available"}`))
-            issues++
+      const healthResults = await Promise.all(
+        runtimes.map(async (runtime) => {
+          try {
+            return await runtime.healthCheck()
+          } catch (e) {
+            return {
+              name: runtime.name,
+              command: runtime.name,
+              installed: false,
+              version: null,
+              authenticated: "unknown" as const,
+              authDetail: String(e),
+              error: String(e),
+            }
           }
-        } catch {
-          console.log(chalk.red(`  ✗ ${runtime.name} — health check failed`))
+        }),
+      )
+
+      for (const health of healthResults) {
+        if (health.installed && health.authenticated === "yes") {
+          const ver = health.version ? ` (${health.version})` : ""
+          console.log(chalk.green(`  ✓ ${health.name}${ver}`))
+        } else if (health.installed) {
+          console.log(chalk.yellow(`  ⚠ ${health.name} — installed but auth: ${health.authenticated}`))
           issues++
+        } else {
+          console.log(chalk.dim(`  ○ ${health.name} — not installed`))
         }
       }
 
