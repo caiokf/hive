@@ -1,11 +1,15 @@
 import type { Command } from "commander"
 import readline from "node:readline"
+import { spawn } from "node:child_process"
+import fs from "node:fs"
+import path from "node:path"
 import chalk from "chalk"
-import { findHiveDir } from "../core/config.js"
+import { CronJob } from "cron"
+import { findHiveDir, loadConfig, loadTasks } from "../core/config.js"
 import { getDaemonStatus } from "../core/daemon.js"
 import { listRuns, getRun } from "../core/run-store.js"
 import { renderMarkdown } from "../ui/markdown.js"
-import type { Run } from "../core/types.js"
+import type { Run, TaskDefinition } from "../core/types.js"
 
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
@@ -20,6 +24,9 @@ export function registerDashCommand(program: Command) {
         process.exit(1)
       }
 
+      const config = loadConfig(hiveDir)
+      const tasks = loadTasks(hiveDir)
+
       let selectedIndex = 0
       let detailRunId: string | null = null
       let frame = 0
@@ -27,6 +34,24 @@ export function registerDashCommand(program: Command) {
 
       function refresh() {
         allRuns = listRuns(hiveDir!, { limit: 50 })
+      }
+
+      // Compute next cron occurrences
+      function getUpcoming(): Array<{ name: string; schedule: string; next: Date }> {
+        const upcoming: Array<{ name: string; schedule: string; next: Date }> = []
+        for (const task of tasks) {
+          if (task.trigger.type !== "cron") continue
+          try {
+            const job = CronJob.from({ cronTime: task.trigger.schedule, onTick: () => {} })
+            const nextDate = job.nextDate()
+            upcoming.push({
+              name: task.name,
+              schedule: task.trigger.schedule,
+              next: nextDate.toJSDate(),
+            })
+          } catch {}
+        }
+        return upcoming.sort((a, b) => a.next.getTime() - b.next.getTime())
       }
 
       function render() {
@@ -48,21 +73,15 @@ export function registerDashCommand(program: Command) {
           return
         }
 
-        if (allRuns.length === 0) {
-          console.log(chalk.dim("\n  No runs yet. Trigger a task or wait for events.\n"))
-          renderHelp()
-          return
-        }
-
         const activeRuns = allRuns.filter(r => r.status === "running" || r.status === "pending")
         const completedRuns = allRuns.filter(r => r.status !== "running" && r.status !== "pending")
 
         // Compute column widths across all visible runs for alignment
-        const maxDisplay = Math.min(completedRuns.length, rows - activeRuns.length - 10)
+        const maxDisplay = Math.min(completedRuns.length, Math.max(rows - activeRuns.length - 16, 3))
         const visibleRuns = [...activeRuns, ...completedRuns.slice(0, maxDisplay)]
-        const colWidths = {
+        const colWidths = visibleRuns.length > 0 ? {
           name: Math.max(...visibleRuns.map(r => r.taskName.length)),
-          id: 8, // fixed: UUIDs are always 8 chars
+          id: 8,
           duration: Math.max(...visibleRuns.map(r => {
             if (r.status === "running" || r.status === "pending") {
               return formatDuration(Date.now() - new Date(r.startedAt).getTime()).length
@@ -70,8 +89,8 @@ export function registerDashCommand(program: Command) {
             return r.result?.durationMs ? formatDuration(r.result.durationMs).length : 0
           }), 1),
           time: Math.max(...visibleRuns.map(r => formatTimestampShort(r.startedAt).length), 1),
-          trigger: Math.max(...visibleRuns.map(r => r.trigger.type.length + 2), 1), // +2 for brackets
-        }
+          trigger: Math.max(...visibleRuns.map(r => r.trigger.type.length + 2), 1),
+        } : { name: 1, id: 8, duration: 1, time: 1, trigger: 1 }
 
         if (activeRuns.length > 0) {
           console.log(chalk.bold.yellow(`\n  Active (${activeRuns.length})`))
@@ -102,6 +121,21 @@ export function registerDashCommand(program: Command) {
             const timestamp = formatTimestampShort(run.startedAt)
             const trigger = `[${run.trigger.type}]`
             console.log(`  ${selected} ${icon} ${chalk.white.bold(run.taskName.padEnd(colWidths.name))} ${chalk.dim(run.id)} ${chalk.cyan(duration.padStart(colWidths.duration))} ${chalk.dim(timestamp.padEnd(colWidths.time))} ${chalk.blue(trigger)}${link}`)
+          }
+        }
+
+        if (allRuns.length === 0) {
+          console.log(chalk.dim("\n  No runs yet. Trigger a task or wait for events."))
+        }
+
+        // Upcoming cron tasks
+        const upcoming = getUpcoming()
+        if (upcoming.length > 0) {
+          console.log(chalk.bold(`\n  Upcoming`))
+          const nameWidth = Math.max(...upcoming.map(u => u.name.length))
+          for (const u of upcoming) {
+            const countdown = formatCountdown(u.next.getTime() - Date.now())
+            console.log(`  ${chalk.dim("◇")} ${chalk.white.bold(u.name.padEnd(nameWidth))} ${chalk.yellow(countdown)} ${chalk.dim(u.schedule)}`)
           }
         }
 
@@ -145,8 +179,28 @@ export function registerDashCommand(program: Command) {
         console.log(chalk.dim("\n  [esc] back  [q] quit"))
       }
 
+      function rerunSelected() {
+        const run = allRuns[selectedIndex]
+        if (!run) return
+
+        // Find the task definition
+        const task = tasks.find(t => t.name === run.taskName)
+        if (!task) return
+
+        // Spawn hive run in background
+        const distBin = path.resolve(process.cwd(), "dist", "bin.js")
+        const entryPoint = fs.existsSync(distBin) ? distBin : process.argv[1]
+        spawn(process.execPath, [entryPoint, "run", task.name], {
+          stdio: "ignore",
+          detached: true,
+        }).unref()
+
+        // Refresh after a short delay to pick up the new run
+        setTimeout(refresh, 500)
+      }
+
       function renderHelp() {
-        console.log(chalk.dim("\n  [↑/↓] navigate  [enter] detail  [r] refresh  [q] quit"))
+        console.log(chalk.dim("\n  [↑/↓] navigate  [enter] detail  [x] re-run  [r] refresh  [q] quit"))
       }
 
       // Start TUI
@@ -186,6 +240,8 @@ export function registerDashCommand(program: Command) {
           if (allRuns[selectedIndex]) {
             detailRunId = allRuns[selectedIndex].id
           }
+        } else if (key.name === "x") {
+          rerunSelected()
         } else if (key.name === "r") {
           refresh()
         }
@@ -201,6 +257,20 @@ function formatDuration(ms: number): string {
   const mins = Math.floor(ms / 60_000)
   const secs = Math.round((ms % 60_000) / 1000)
   return `${mins}m${secs}s`
+}
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return "now"
+  const parts: string[] = []
+  const days = Math.floor(ms / 86_400_000)
+  const hours = Math.floor((ms % 86_400_000) / 3_600_000)
+  const mins = Math.floor((ms % 3_600_000) / 60_000)
+  const secs = Math.floor((ms % 60_000) / 1000)
+  if (days > 0) parts.push(`${days}d`)
+  if (hours > 0) parts.push(`${hours}h`)
+  if (mins > 0) parts.push(`${mins}m`)
+  if (parts.length === 0 || (days === 0 && hours === 0)) parts.push(`${secs}s`)
+  return parts.join(" ")
 }
 
 function formatTimestampShort(iso: string): string {
