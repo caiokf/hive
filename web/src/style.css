@@ -8,8 +8,8 @@
 }
 
 :root {
-  --col-bg: #060503;
-  --col-surface: #0d0a06;
+  --col-bg: #160f07;
+  --col-surface: #1c150c;
   --col-amber-dim: #8b5e0f;
   --col-amber: #d4880f;
   --col-orange: #e87a2e;
@@ -66,12 +66,27 @@ body {
 
 /* ───── Header ───── */
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2rem 3rem;
+  padding: 1.2rem 3rem;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s, background 0.3s, backdrop-filter 0.3s;
   opacity: 0;
   animation: fade-down 0.8s var(--ease-out-expo) 0.3s forwards;
+}
+
+.header.scrolled {
+  border-bottom-color: var(--col-border);
+  background: rgba(22, 15, 7, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .header-logo {
