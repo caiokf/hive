@@ -1,0 +1,49 @@
+{
+  "name": "@caiokf/hive",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "hive": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "tsup",
+    "hive": "tsup --silent && tsx src/bin.ts"
+  },
+  "dependencies": {
+    "@caiokf/valet": "^0.1.1",
+    "@hono/node-server": "1.19.14",
+    "@inquirer/prompts": "^7.5.0",
+    "chalk": "^5.4.1",
+    "commander": "^14.0.0",
+    "cron": "^4.3.0",
+    "hono": "^4.7.0",
+    "yaml": "^2.7.1",
+    "zod": "^3.24.3"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.2",
+    "tsup": "^8.4.0",
+    "tsx": "4.21.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.8.0"
+}
