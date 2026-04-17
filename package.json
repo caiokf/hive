@@ -22,7 +22,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "prepublishOnly": "tsup",
-    "hive": "tsup --silent && tsx src/bin.ts"
+    "hive": "tsup --silent && tsx src/bin.ts",
+    "dev": "tsup --watch"
   },
   "dependencies": {
     "@caiokf/valet": "^0.1.1",
