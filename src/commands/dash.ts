@@ -56,22 +56,38 @@ export function registerDashCommand(program: Command) {
         const activeRuns = allRuns.filter(r => r.status === "running" || r.status === "pending")
         const completedRuns = allRuns.filter(r => r.status !== "running" && r.status !== "pending")
 
+        // Compute column widths across all visible runs for alignment
+        const maxDisplay = Math.min(completedRuns.length, rows - activeRuns.length - 10)
+        const visibleRuns = [...activeRuns, ...completedRuns.slice(0, maxDisplay)]
+        const colWidths = {
+          name: Math.max(...visibleRuns.map(r => r.taskName.length)),
+          id: 8, // fixed: UUIDs are always 8 chars
+          duration: Math.max(...visibleRuns.map(r => {
+            if (r.status === "running" || r.status === "pending") {
+              return formatDuration(Date.now() - new Date(r.startedAt).getTime()).length
+            }
+            return r.result?.durationMs ? formatDuration(r.result.durationMs).length : 0
+          }), 1),
+          time: Math.max(...visibleRuns.map(r => formatTimestampShort(r.startedAt).length), 1),
+          trigger: Math.max(...visibleRuns.map(r => r.trigger.type.length + 2), 1), // +2 for brackets
+        }
+
         if (activeRuns.length > 0) {
           console.log(chalk.bold.yellow(`\n  Active (${activeRuns.length})`))
           for (let i = 0; i < activeRuns.length; i++) {
             const run = activeRuns[i]
             const spinner = SPINNER_FRAMES[frame % SPINNER_FRAMES.length]
-            const elapsed = Date.now() - new Date(run.startedAt).getTime()
+            const elapsed = formatDuration(Date.now() - new Date(run.startedAt).getTime())
             const selected = i === selectedIndex ? chalk.cyan("›") : " "
             const timestamp = formatTimestampShort(run.startedAt)
-            console.log(`  ${selected} ${chalk.yellow(spinner)} ${chalk.white.bold(run.taskName)} ${chalk.dim(run.id)} ${chalk.yellow(formatDuration(elapsed))} ${chalk.dim(timestamp)} ${chalk.blue(`[${run.trigger.type}]`)}`)
+            const trigger = `[${run.trigger.type}]`
+            console.log(`  ${selected} ${chalk.yellow(spinner)} ${chalk.white.bold(run.taskName.padEnd(colWidths.name))} ${chalk.dim(run.id)} ${chalk.yellow(elapsed.padStart(colWidths.duration))} ${chalk.dim(timestamp.padEnd(colWidths.time))} ${chalk.blue(trigger)}`)
           }
         }
 
         if (completedRuns.length > 0) {
           console.log(chalk.bold(`\n  Completed (${completedRuns.length})`))
           const offset = activeRuns.length
-          const maxDisplay = Math.min(completedRuns.length, rows - activeRuns.length - 10)
           for (let i = 0; i < maxDisplay; i++) {
             const run = completedRuns[i]
             const icon = run.status === "success" ? chalk.green("✓") :
@@ -83,7 +99,8 @@ export function registerDashCommand(program: Command) {
             const link = run.links?.pr ? chalk.cyan(` → PR`) : ""
             const selected = (offset + i) === selectedIndex ? chalk.cyan("›") : " "
             const timestamp = formatTimestampShort(run.startedAt)
-            console.log(`  ${selected} ${icon} ${chalk.white.bold(run.taskName)} ${chalk.dim(run.id)} ${chalk.cyan(duration)} ${chalk.dim(timestamp)} ${chalk.blue(`[${run.trigger.type}]`)}${link}`)
+            const trigger = `[${run.trigger.type}]`
+            console.log(`  ${selected} ${icon} ${chalk.white.bold(run.taskName.padEnd(colWidths.name))} ${chalk.dim(run.id)} ${chalk.cyan(duration.padStart(colWidths.duration))} ${chalk.dim(timestamp.padEnd(colWidths.time))} ${chalk.blue(trigger)}${link}`)
           }
         }
 
