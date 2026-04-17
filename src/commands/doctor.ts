@@ -1,5 +1,6 @@
 import type { Command } from "commander"
 import fs from "node:fs"
+import path from "node:path"
 import chalk from "chalk"
 import { getAllRuntimes } from "@caiokf/valet"
 import { findHiveDir, loadConfig, loadTasks } from "../core/config.js"
@@ -50,14 +51,13 @@ export function registerDoctorCommand(program: Command) {
         const cronTasks = tasks.filter(t => t.trigger.type === "cron")
         console.log(chalk.green(`  ✓ ${tasks.length} task(s): ${webhookTasks.length} webhook, ${cronTasks.length} cron`))
 
-        // Validate agent files
+        // Validate agent files (resolved relative to .hive/)
         for (const task of tasks) {
           if (task.task.agent) {
-            const agentPath = fs.existsSync(task.task.agent)
-              ? task.task.agent
-              : fs.existsSync(`${hiveDir}/../${task.task.agent}`)
-            if (!agentPath) {
+            const agentPath = path.resolve(hiveDir, task.task.agent)
+            if (!fs.existsSync(agentPath)) {
               console.log(chalk.yellow(`  ⚠ Agent file not found for ${task.name}: ${task.task.agent}`))
+              console.log(chalk.dim(`    Expected at: ${agentPath}`))
               issues++
             }
           }

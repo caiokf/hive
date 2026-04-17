@@ -51,8 +51,9 @@ export async function executeTask(opts: ExecuteOpts): Promise<Run> {
     // Append context files if specified
     if (spec.context?.length) {
       const contextParts: string[] = []
+      const projectRoot = path.dirname(hiveDir)
       for (const pattern of spec.context) {
-        const resolved = path.resolve(hiveDir, pattern)
+        const resolved = path.resolve(projectRoot, pattern)
         if (fs.existsSync(resolved)) {
           contextParts.push(`\n--- ${pattern} ---\n${fs.readFileSync(resolved, "utf-8")}`)
         }
