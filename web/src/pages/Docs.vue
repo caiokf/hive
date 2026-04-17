@@ -746,13 +746,42 @@ hive doctor</code></pre>
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
+  .docs {
+    padding-top: 48px;
+  }
+
   .sidebar {
     display: none;
   }
 
   .content {
     margin-left: 0;
-    padding: 32px 20px 80px;
+    padding: 16px 16px 80px;
+    max-width: 100%;
+  }
+
+  .content section {
+    padding-top: 12px;
+    padding-bottom: 32px;
+  }
+
+  .content h1 {
+    font-size: 1.5rem;
+  }
+
+  .content h2 {
+    margin-top: 24px;
+  }
+
+  .code-block {
+    border-radius: 8px;
+    margin-left: -4px;
+    margin-right: -4px;
+  }
+
+  .code-block pre {
+    padding: 14px;
+    font-size: 12px;
   }
 
   .prop-row {
@@ -762,6 +791,14 @@ hive doctor</code></pre>
 
   .props-table.compact .prop-row {
     grid-template-columns: 1fr;
+  }
+
+  .props-table {
+    border-radius: 8px;
+  }
+
+  .lead {
+    font-size: 14px;
   }
 }
 </style>
