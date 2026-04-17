@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import os from "node:os"
 import path from "node:path"
 import { getRuntime } from "@caiokf/valet"
 import type { HiveConfig, TaskDefinition, Run } from "./types.js"
@@ -61,15 +62,25 @@ export async function executeTask(opts: ExecuteOpts): Promise<Run> {
       }
     }
 
-    const result = await runtime.execute({
-      taskName: task.name,
-      model,
-      prompt,
-      signal,
-      overrides: config.runtimes[runtimeName]
-        ? { env: config.runtimes[runtimeName].env, extraArgs: config.runtimes[runtimeName].args }
-        : undefined,
-    })
+    // Write prompt to temp file (valet runtimes expect promptFile)
+    const promptFile = path.join(os.tmpdir(), `hive-${run.id}.md`)
+    fs.writeFileSync(promptFile, prompt, "utf-8")
+
+    let result
+    try {
+      result = await runtime.execute({
+        taskName: task.name,
+        model,
+        prompt,
+        promptFile,
+        signal,
+        overrides: config.runtimes[runtimeName]
+          ? { env: config.runtimes[runtimeName].env, extraArgs: config.runtimes[runtimeName].args }
+          : undefined,
+      })
+    } finally {
+      try { fs.unlinkSync(promptFile) } catch {}
+    }
 
     const updatedRun = updateRun(hiveDir, run.id, {
       status: result.exitCode === 0 ? "success" : "failure",
