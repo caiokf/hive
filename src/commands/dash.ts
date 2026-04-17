@@ -63,7 +63,8 @@ export function registerDashCommand(program: Command) {
             const spinner = SPINNER_FRAMES[frame % SPINNER_FRAMES.length]
             const elapsed = Date.now() - new Date(run.startedAt).getTime()
             const selected = i === selectedIndex ? chalk.cyan("›") : " "
-            console.log(`  ${selected} ${chalk.yellow(spinner)} ${chalk.bold(run.taskName)} ${chalk.dim(run.id)} ${chalk.dim(formatDuration(elapsed))}`)
+            const timestamp = formatTimestampShort(run.startedAt)
+            console.log(`  ${selected} ${chalk.yellow(spinner)} ${chalk.white.bold(run.taskName)} ${chalk.dim(run.id)} ${chalk.yellow(formatDuration(elapsed))} ${chalk.dim(timestamp)} ${chalk.blue(`[${run.trigger.type}]`)}`)
           }
         }
 
@@ -78,11 +79,11 @@ export function registerDashCommand(program: Command) {
                          run.status === "timeout" ? chalk.yellow("⏱") :
                          run.status === "cancelled" ? chalk.dim("○") :
                          chalk.dim("◌")
-            const duration = run.result?.durationMs ? chalk.dim(formatDuration(run.result.durationMs)) : ""
+            const duration = run.result?.durationMs ? formatDuration(run.result.durationMs) : ""
             const link = run.links?.pr ? chalk.cyan(` → PR`) : ""
             const selected = (offset + i) === selectedIndex ? chalk.cyan("›") : " "
-            console.log(`  ${selected} ${icon} ${chalk.bold(run.taskName)} ${chalk.dim(run.id)} ${duration}${link}`)
-            console.log(chalk.dim(`      ${formatTimestamp(run.startedAt)} [${run.trigger.type}]`))
+            const timestamp = formatTimestampShort(run.startedAt)
+            console.log(`  ${selected} ${icon} ${chalk.white.bold(run.taskName)} ${chalk.dim(run.id)} ${chalk.cyan(duration)} ${chalk.dim(timestamp)} ${chalk.blue(`[${run.trigger.type}]`)}${link}`)
           }
         }
 
@@ -183,9 +184,15 @@ function formatDuration(ms: number): string {
   return `${mins}m${secs}s`
 }
 
-function formatTimestamp(iso: string): string {
+function formatTimestampShort(iso: string): string {
   const d = new Date(iso)
-  return d.toLocaleString()
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+
+  if (diffMs < 60_000) return "just now"
+  if (diffMs < 3_600_000) return `${Math.floor(diffMs / 60_000)}m ago`
+  if (diffMs < 86_400_000) return `${Math.floor(diffMs / 3_600_000)}h ago`
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
 }
 
 function formatStatus(status: string): string {
