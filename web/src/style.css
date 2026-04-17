@@ -267,6 +267,8 @@ body {
   padding: 1rem 1.2rem;
   font-size: 0.78rem;
   line-height: 2;
+  max-height: 12rem;
+  overflow: hidden;
 }
 
 .terminal-line {
@@ -529,6 +531,8 @@ body {
   }
 
   .hero {
+    flex: none;
+    min-height: auto;
     padding: 3rem 1.5rem 4rem;
   }
 
@@ -538,9 +542,25 @@ body {
     max-width: 300px;
   }
 
+  .terminal {
+    max-width: 100%;
+  }
+
+  .terminal-body {
+    max-height: 10rem;
+  }
+
+  .callout {
+    padding: 2rem 1.5rem 3rem;
+  }
+
+  .install {
+    padding: 2rem 1.5rem 3rem;
+  }
+
   .features {
     padding: 3rem 1.5rem 5rem;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .feature {
