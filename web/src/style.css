@@ -527,7 +527,7 @@ body {
   }
 
   .header-links {
-    display: none;
+    gap: 1.2rem;
   }
 
   .hero {
